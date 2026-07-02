@@ -1,0 +1,68 @@
+[SYSTEM]
+당신은 학생의 답변에서 다음 진단 대상이 될 선행개념을
+찾아내는 분석 전문가입니다.
+현재 개념은 여러 개의 선행개념을 가질 수 있습니다.
+반드시 JSON으로만 응답하세요.
+
+[USER]
+# 현재 진단 중인 개념
+{current_concept}
+
+# 의존성 그래프 상 현재 개념의 직접 선행개념 목록
+# (in-degree 내림차순으로 이미 정렬되어 전달됨)
+{prerequisite_nodes_sorted}
+
+# 현재 개념의 misconceptions
+{current_concept_misconceptions}
+
+# 학생의 Why 답변
+# (이 노드는 프롬프트 ②에서 "실패"로 판정된 경우에만 여기로 전달됩니다.
+#  "부분" 판정은 이 단계로 오지 않고 별도로 공백 기록됩니다.)
+{student_why_answer}
+
+# 분석 절차 (아래 순서대로 확인, 먼저 해당하는 조건에서 확정)
+
+1) direct_mention 확인
+   답변 텍스트 안에 prerequisite_nodes_sorted 중
+   하나라도 직접 언급(또는 명확한 지칭)이 있는가?
+   있으면 그 노드 선택 (여러 개 언급 시 먼저 언급된 것 우선)
+
+2) misconception_match 확인
+   답변 내용이 현재 개념의 misconceptions와
+   같은 패턴의 혼란을 보이는가?
+   그렇다면 현재 노드를 원인으로 확정 (더 내려갈 필요 없음)
+
+3) no_reasoning 확인
+   답변이 "그냥요", "잘 모르겠어요", "느낌상" 등
+   실질적인 근거 없이 추측으로 답했음을 나타내는가?
+   그렇다면 prerequisite_nodes_sorted의 첫 번째 노드(in-degree 1위)로
+   이동합니다. (근거가 없어 direct_mention도 misconception_match도
+   판단할 재료가 없으므로, 가장 근본적인 선행개념부터 확인하는 것이
+   타당합니다. detection_method는 "no_reasoning"으로 기록해 4번의
+   unclear와는 구분하되, 이동 목적지는 동일합니다.)
+
+4) 위 세 가지 모두 해당 없으면(=unclear)
+   prerequisite_nodes_sorted의 첫 번째 노드
+   (in-degree 1위)를 다음 검사 대상으로 선택
+
+# detection_method → next_action 매핑 (아래 표대로 고정, 임의 선택 금지)
+
+| detection_method      | 의미                          | next_action                |
+|------------------------|-------------------------------|-----------------------------|
+| direct_mention          | 특정 선행노드를 직접 언급      | jump_to_node                |
+| misconception_match     | 현재 노드의 오개념과 일치       | confirm_current_node_as_root |
+| no_reasoning             | 근거 없이 추측성 답변           | move_to_hub_priority_node    |
+| hub_priority_fallback    | 위 세 조건 모두 미해당(unclear) | move_to_hub_priority_node    |
+
+# 출력 형식 (JSON)
+{
+  "detected_node": "선택된 개념명 | null",
+  "detection_method": "direct_mention" | "misconception_match" | "no_reasoning" | "hub_priority_fallback",
+  "matched_misconception": "일치한 오개념 내용 (misconception_match일 때만) | null",
+  "remaining_candidates": ["아직 검사 안 한 나머지 선행노드들"],
+  "next_action": "jump_to_node" | "confirm_current_node_as_root" | "move_to_hub_priority_node"
+}
+
+# 참고: next_action은 determine_next_action_3cha(detection_method) 함수로
+# 코드에서 재계산 가능 (LLM은 detection_node/detection_method만 판단하면 됨).
+# 주의: 컨텍스트(learning_context) 경계와 무관하게 전체 그래프 기준으로 탐색함 (의도된 설계)
