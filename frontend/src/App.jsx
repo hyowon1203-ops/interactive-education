@@ -33,8 +33,16 @@ export default function App() {
     setView('learning')
   }
 
-  function handleLearningComplete(conceptId, masteryLevel) {
-    updateMastery(conceptId, masteryLevel)
+  function handleMasteryUpdate(updates) {
+    if (!updates) return
+    setMastery(prev => {
+      const next = { ...prev, ...updates }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+      return next
+    })
+  }
+
+  function handleLearningComplete() {
     setLearningActive(false)
     setActiveConcept(null)
     setView('graph')
@@ -78,6 +86,7 @@ export default function App() {
             onComplete={handleLearningComplete}
             onCancel={handleCancelLearning}
             onViewGraph={() => setView('graph')}
+            onMasteryUpdate={handleMasteryUpdate}
           />
         </div>
       )}

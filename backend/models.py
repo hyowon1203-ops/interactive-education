@@ -35,12 +35,26 @@ class SubmitAnswerRequest(BaseModel):
 
 
 class SubmitAnswerResponse(BaseModel):
-    judgment: str  # "통과" | "부분" | "실패"
+    # 항상 존재
+    judgment: str
     feedback: str
-    is_done: bool
-    gap_type: Optional[str] = None  # "shallow" | "conceptual" | null
+    action: str          # "diagnose_next" | "start_learning" | "done"
+    mastery_updates: dict = {}
+
+    # action == "diagnose_next" 일 때
+    next_concept_id: Optional[str] = None
+    next_concept_name: Optional[str] = None
+    next_question: Optional[QuestionSet] = None
+
+    # action == "start_learning" 일 때
+    learning_concept_id: Optional[str] = None
+    learning_concept_name: Optional[str] = None
+    gap_type: Optional[str] = None
     learning_content: Optional[LearningContent] = None
     recheck_question: Optional[str] = None
+
+    # legacy
+    is_done: bool = False
 
 
 # ── /api/sessions/{id}/verbal-answer ─────────────────────────────────────────
@@ -67,8 +81,16 @@ class FeedbackResult(BaseModel):
 
 
 class SubmitVerbalAnswerResponse(BaseModel):
-    overall_result: str  # "full_understanding" | "partial_understanding" | "insufficient_understanding"
+    overall_result: str
     feedback: FeedbackResult
+    action: str          # "learn_next" | "done"
+    mastery_updates: dict = {}
+
+    # action == "learn_next" 일 때
+    next_concept_id: Optional[str] = None
+    next_concept_name: Optional[str] = None
+    next_learning_content: Optional[LearningContent] = None
+    next_recheck_question: Optional[str] = None
 
 
 # ── /api/concepts ─────────────────────────────────────────────────────────────
