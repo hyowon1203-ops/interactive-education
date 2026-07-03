@@ -204,7 +204,7 @@ export default function LearningMode({ concept, onComplete, onCancel, onViewGrap
 
           {phase === 'ANSWERING' && questions && (
             <div>
-              <div className="concept-label">
+              <div className="lm-concept-header">
                 <span className="concept-chip">1차 점검</span>
                 <strong>{concept.name_kr}</strong>
               </div>
@@ -237,7 +237,7 @@ export default function LearningMode({ concept, onComplete, onCancel, onViewGrap
 
           {phase === 'GAP_FOUND' && (
             <div>
-              <div className="concept-label">
+              <div className="lm-concept-header">
                 <span className="concept-chip">1차 점검 결과</span>
                 <strong>{concept.name_kr}</strong>
                 <span className={`badge badge-${judgeClass(diagnosisJudgment)}`}>{diagnosisJudgment}</span>
@@ -249,7 +249,7 @@ export default function LearningMode({ concept, onComplete, onCancel, onViewGrap
                 <p className="gap-found-desc">{gapContext}</p>
               </div>
 
-              <div className="concept-label" style={{ marginTop: 20, marginBottom: 0 }}>
+              <div className="lm-concept-header" style={{ marginTop: 20, marginBottom: 0 }}>
                 <span className="concept-chip">집중 학습 대상</span>
                 <strong>{learningConceptName}</strong>
               </div>
@@ -262,7 +262,7 @@ export default function LearningMode({ concept, onComplete, onCancel, onViewGrap
 
           {phase === 'LEARNING_CONTENT' && learningContent && (
             <div>
-              <div className="concept-label">
+              <div className="lm-concept-header">
                 <span className="concept-chip">집중 학습</span>
                 <strong>{learningConceptName}</strong>
               </div>
@@ -288,7 +288,7 @@ export default function LearningMode({ concept, onComplete, onCancel, onViewGrap
 
           {phase === 'VERBAL_INPUT' && (
             <div>
-              <div className="concept-label">
+              <div className="lm-concept-header">
                 <span className="concept-chip">2차 점검</span>
                 <strong>{learningConceptName}</strong>
               </div>
@@ -310,7 +310,7 @@ export default function LearningMode({ concept, onComplete, onCancel, onViewGrap
 
           {phase === 'VERBAL_RESULT' && verbalResult && (
             <div>
-              <div className="concept-label">
+              <div className="lm-concept-header">
                 <span className="concept-chip">점검 결과</span>
                 <strong>{learningConceptName}</strong>
                 <span className={`badge badge-${resultClass(verbalResult.overall_result)}`}>
@@ -355,7 +355,7 @@ export default function LearningMode({ concept, onComplete, onCancel, onViewGrap
           {phase === 'DONE' && (
             <div className="loading-state">
               <p style={{ fontSize: '2rem', margin: 0 }}>✓</p>
-              <div className="concept-label" style={{ justifyContent: 'center' }}>
+              <div className="lm-concept-header" style={{ justifyContent: 'center' }}>
                 <span className={`badge badge-${judgeClass(diagnosisJudgment)}`}>{diagnosisJudgment}</span>
               </div>
               <p style={{ color: '#475569', textAlign: 'center', margin: 0 }}>{diagnosisFeedback}</p>

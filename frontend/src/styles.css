@@ -259,7 +259,7 @@ select:focus, input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37
 
 /* ── Concept chip / label in learning card ───────────────── */
 
-.concept-label {
+.lm-concept-header {
   display: flex; align-items: center; gap: 10px;
   margin-bottom: 18px; flex-wrap: wrap;
 }
