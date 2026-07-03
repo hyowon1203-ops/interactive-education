@@ -632,10 +632,6 @@ export default function GraphMode({ externalMastery = {}, onStartLearning, onSta
               <strong>must_have</strong>
               <ul>{(selectedConcept.must_have || []).slice(0, 3).map((item) => <li key={item}>{item}</li>)}</ul>
             </div>
-            <div className="detail-block">
-              <strong>recheck_question</strong>
-              <p>{shortText(selectedConcept.recheck_question, 120)}</p>
-            </div>
             {onStartLearning && (
               <button className="learn-start-btn" onClick={() => onStartLearning(selectedConcept)}>
                 이 개념 학습하기 →
