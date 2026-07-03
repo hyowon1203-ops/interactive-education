@@ -611,7 +611,10 @@ export default function GraphMode({ externalMastery = {}, onStartLearning, onSta
           ))}
           {onResetMastery && (
             <button className="reset-mastery-btn" onClick={() => {
-              if (window.confirm('모든 노드를 미진단 상태로 초기화할까요?')) onResetMastery()
+              if (window.confirm('모든 노드를 미진단 상태로 초기화할까요?')) {
+                setBaseStudentState({})
+                onResetMastery()
+              }
             }}>
               이해도 초기화
             </button>
