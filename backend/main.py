@@ -175,6 +175,8 @@ async def _begin_learning_phase(
         "current_p4_output": p4_output,
     })
 
+    is_final_concept = len(learning_queue) == 1
+
     return SubmitAnswerResponse(
         judgment=judgment,
         feedback=feedback_text,
@@ -185,6 +187,8 @@ async def _begin_learning_phase(
         learning_content=_make_learning_content(p4_output),
         recheck_question=first_concept.get("recheck_question"),
         gap_context=gap_context,
+        is_final_concept=is_final_concept,
+        gap_prereq_names=[],
         mastery_updates=mastery_updates,
     )
 
@@ -370,6 +374,72 @@ async def submit_answer(session_id: str, req: SubmitAnswerRequest):
         )
 
 
+# ─── /api/sessions/{id}/next-learning ───────────────────────────────────────
+
+@app.post("/api/sessions/{session_id}/next-learning", response_model=SubmitAnswerResponse)
+async def next_learning(session_id: str):
+    """선행 개념(B)의 P5를 건너뛰고 목표 개념(A)의 P4로 바로 이동."""
+    sess = session_module.get_session(session_id)
+    if not sess:
+        raise HTTPException(404, "Session not found")
+    if sess["phase"] != "LEARNING":
+        raise HTTPException(400, f"Expected phase LEARNING, got {sess['phase']}")
+
+    current_queue = sess["learning_queue"]
+    if len(current_queue) < 2:
+        raise HTTPException(400, "No next concept to skip to")
+
+    skipped_id = current_queue[0]
+    skipped_concept = graph_module.get_concept(skipped_id)
+    gap_prereq_names = [skipped_concept["name_kr"]] if skipped_concept else []
+
+    remaining_queue = current_queue[1:]
+    next_id = remaining_queue[0]
+    next_concept = graph_module.get_concept(next_id)
+    if not next_concept:
+        raise HTTPException(500, f"Concept '{next_id}' not found")
+
+    concept_data = sess.get("concept_data", {})
+    ctx = concept_data.get(next_id, {})
+    answer = ctx.get("answer", {})
+    p2 = ctx.get("p2_output", {})
+    gap_type = ctx.get("gap_type", "conceptual")
+
+    sys4, usr4 = build_prompt4(
+        gap_concept=next_concept,
+        gap_type=gap_type,
+        classification_answer=answer.get("classification", ""),
+        why_answer=answer.get("why", ""),
+        missing_elements=p2.get("missing_elements", []),
+        misconception_detail=p2.get("misconception_detail"),
+    )
+    p4_output = await call_llm(sys4, usr4)
+
+    mastery_updates = dict(sess.get("mastery_updates", {}))
+
+    session_module.update_session(session_id, {
+        "current_concept_id": next_id,
+        "learning_queue": remaining_queue,
+        "current_p4_output": p4_output,
+        "gap_prereq_ids": [skipped_id],
+        "mastery_updates": mastery_updates,
+    })
+
+    return SubmitAnswerResponse(
+        judgment="",
+        feedback="",
+        action="start_learning",
+        learning_concept_id=next_id,
+        learning_concept_name=next_concept["name_kr"],
+        gap_type=gap_type,
+        learning_content=_make_learning_content(p4_output),
+        recheck_question=next_concept.get("recheck_question"),
+        is_final_concept=True,
+        gap_prereq_names=gap_prereq_names,
+        mastery_updates=mastery_updates,
+    )
+
+
 # ─── /api/sessions/{id}/verbal-answer ────────────────────────────────────────
 
 @app.post(
@@ -394,8 +464,14 @@ async def submit_verbal_answer(session_id: str, req: SubmitVerbalAnswerRequest):
         if graph_module.get_concept(pid)
     ]
 
-    # P5: 2차 점검 평가
-    sys5, usr5 = build_prompt5(gap_concept, prereqs, req.transcript)
+    # P5: 2차 점검 평가 (선행 개념 집중학습 이력 포함)
+    gap_prereq_ids = sess.get("gap_prereq_ids", [])
+    gap_prereqs_studied = [
+        graph_module.get_concept(pid)
+        for pid in gap_prereq_ids
+        if graph_module.get_concept(pid)
+    ]
+    sys5, usr5 = build_prompt5(gap_concept, prereqs, req.transcript, gap_prereqs_studied or None)
     p5_output = await call_llm(sys5, usr5)
 
     overall_result = determine_overall_result(
@@ -406,6 +482,16 @@ async def submit_verbal_answer(session_id: str, req: SubmitVerbalAnswerRequest):
     mastery_level = MASTERY_FROM_RESULT.get(overall_result, 1)
 
     mastery_updates = {**sess.get("mastery_updates", {}), current_id: mastery_level}
+
+    # 선행 개념(B)의 마스터리를 통합성 평가 결과로 갱신
+    if gap_prereq_ids:
+        integration_level = p5_output.get("integration_level", "insufficient")
+        prereq_mastery = {"integrated": 4, "listed_only": 3, "insufficient": 1}.get(
+            integration_level, 1
+        )
+        for pid in gap_prereq_ids:
+            mastery_updates[pid] = prereq_mastery
+
     remaining_queue = sess["learning_queue"][1:]  # 현재 개념 제거
 
     feedback = _make_feedback(p5_output)

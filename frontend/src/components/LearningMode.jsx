@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { startSession, submitAnswer, submitVerbalAnswer } from '../api.js'
+import { startSession, submitAnswer, submitVerbalAnswer, skipToNextLearning } from '../api.js'
 
 const RESULT_LABEL = {
   full_understanding: '충분히 이해했습니다',
@@ -62,6 +62,10 @@ export default function LearningMode({ concept, onComplete, onCancel, onViewGrap
   const [hasNextConcept, setHasNextConcept] = useState(false)
   const [nextLearning, setNextLearning] = useState(null)
 
+  // 목표 개념 여부 + 집중학습한 선행 개념 이름 목록
+  const [isFinalConcept, setIsFinalConcept] = useState(true)
+  const [gapPrereqNames, setGapPrereqNames] = useState([])
+
   const [error, setError] = useState(null)
 
   function applyMasteryUpdates(updates) {
@@ -80,6 +84,7 @@ export default function LearningMode({ concept, onComplete, onCancel, onViewGrap
     setGapContext(null)
     setLearningConceptName(''); setLearningContent(null); setRecheckQuestion('')
     setVerbalAns(''); setVerbalResult(null); setHasNextConcept(false); setNextLearning(null)
+    setIsFinalConcept(true); setGapPrereqNames([])
     setError(null)
 
     startSession(concept.id)
@@ -110,6 +115,8 @@ export default function LearningMode({ concept, onComplete, onCancel, onViewGrap
       setLearningConceptName(result.learning_concept_name)
       setLearningContent(result.learning_content)
       setRecheckQuestion(result.recheck_question)
+      setIsFinalConcept(result.is_final_concept !== false)
+      setGapPrereqNames(result.gap_prereq_names || [])
 
       if (result.gap_context) {
         // 선행 개념 공백 발견 → 발견 화면 먼저 보여주고 클릭 시 학습 시작
@@ -146,6 +153,20 @@ export default function LearningMode({ concept, onComplete, onCancel, onViewGrap
 
   function handleStartGapLearning() {
     setPhase('LEARNING_CONTENT')
+  }
+
+  async function handleSkipToNextLearning() {
+    setPhase('LOADING')
+    try {
+      const result = await skipToNextLearning(sessionId)
+      applyMasteryUpdates(result.mastery_updates)
+      setLearningConceptName(result.learning_concept_name)
+      setLearningContent(result.learning_content)
+      setRecheckQuestion(result.recheck_question)
+      setIsFinalConcept(result.is_final_concept !== false)
+      setGapPrereqNames(result.gap_prereq_names || [])
+      setPhase('LEARNING_CONTENT')
+    } catch (e) { setError(e.message); setPhase('ERROR') }
   }
 
   function handleNextConcept() {
@@ -276,13 +297,26 @@ export default function LearningMode({ concept, onComplete, onCancel, onViewGrap
                 <ContentBlock label="핵심 설명">{learningContent.core_explanation}</ContentBlock>
                 <ContentBlock label="예시" variant="blue">{learningContent.example}</ContentBlock>
               </div>
-              <div className="recheck-section">
-                <h3>2차 점검 질문</h3>
-                <p className="question-text">{recheckQuestion}</p>
-                <button className="btn-primary" onClick={() => { setVerbalAns(''); setPhase('VERBAL_INPUT') }}>
-                  답변하기
-                </button>
-              </div>
+              {isFinalConcept ? (
+                <div className="recheck-section">
+                  <h3>2차 점검 질문</h3>
+                  <p className="question-text">{recheckQuestion}</p>
+                  {gapPrereqNames.length > 0 && (
+                    <p className="gap-prereq-note">
+                      방금 학습한 <strong>{gapPrereqNames.join(', ')}</strong> 개념과의 연결도 함께 설명해 주세요.
+                    </p>
+                  )}
+                  <button className="btn-primary" onClick={() => { setVerbalAns(''); setPhase('VERBAL_INPUT') }}>
+                    답변하기
+                  </button>
+                </div>
+              ) : (
+                <div className="recheck-section">
+                  <button className="btn-primary" onClick={handleSkipToNextLearning}>
+                    다음 개념 학습 →
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -292,7 +326,12 @@ export default function LearningMode({ concept, onComplete, onCancel, onViewGrap
                 <span className="concept-chip">2차 점검</span>
                 <strong>{learningConceptName}</strong>
               </div>
-              <p className="question-text" style={{ marginBottom: 16 }}>{recheckQuestion}</p>
+              <p className="question-text" style={{ marginBottom: gapPrereqNames.length > 0 ? 8 : 16 }}>{recheckQuestion}</p>
+              {gapPrereqNames.length > 0 && (
+                <p className="gap-prereq-note" style={{ marginBottom: 16 }}>
+                  방금 학습한 <strong>{gapPrereqNames.join(', ')}</strong> 개념과의 연결도 함께 설명해 주세요.
+                </p>
+              )}
               <textarea
                 className="answer-textarea"
                 placeholder="배운 내용을 자유롭게 설명해보세요..."

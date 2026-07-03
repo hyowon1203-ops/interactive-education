@@ -49,6 +49,10 @@ class SubmitAnswerResponse(BaseModel):
     recheck_question: Optional[str] = None
     # 선행 개념 공백 발견 시 설명 문구 (없으면 바로 학습 시작)
     gap_context: Optional[str] = None
+    # False이면 이 개념은 P5 없이 다음 개념으로 넘어감 (선행 개념 학습 단계)
+    is_final_concept: bool = True
+    # P5 직전에 집중학습한 선행 개념 이름 목록 (학생에게 함께 설명 요구)
+    gap_prereq_names: list[str] = []
 
     # legacy
     is_done: bool = False

@@ -401,6 +401,12 @@ select:focus, input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37
 .gap-found-concept { font-size: 17px; color: #1e293b; margin: 4px 0; }
 .gap-found-desc { font-size: 13px; color: #78350f; margin: 4px 0 0; }
 
+.gap-prereq-note {
+  font-size: 13px; color: #0369a1; background: #f0f9ff;
+  border: 1px solid #bae6fd; border-radius: 8px;
+  padding: 10px 14px; margin: 0;
+}
+
 @media (max-width: 920px) {
   .app-shell { grid-template-columns: 1fr; grid-template-rows: 310px 1fr; }
   .sidebar { border-right: 0; border-bottom: 1px solid #e5e7eb; }

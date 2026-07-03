@@ -464,6 +464,7 @@ def build_prompt5(
     gap_concept: dict,
     prerequisites: list[dict],
     transcript: str,
+    gap_prereqs_studied: list[dict] | None = None,
 ) -> tuple[str, str]:
     prereq_lines: list[str] = []
     relation_to_target: dict = gap_concept.get("relation_to_target", {})
@@ -484,4 +485,13 @@ def build_prompt5(
         prerequisites_section=prereq_section,
         transcript=transcript,
     )
+
+    if gap_prereqs_studied:
+        lines = [f"- {c['name_kr']}" for c in gap_prereqs_studied]
+        user += (
+            "\n\n# 학습 세션에서 집중 보완한 선행 개념\n"
+            + "\n".join(lines)
+            + "\n→ 학생의 발화에 이 개념들과 목표 개념의 연결이 드러나는지 통합성 평가에 반영하세요."
+        )
+
     return _P5_SYSTEM, user

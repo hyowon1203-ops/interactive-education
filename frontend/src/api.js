@@ -36,6 +36,14 @@ export async function identifyConcept(text) {
   return res.json()
 }
 
+export async function skipToNextLearning(session_id) {
+  const res = await fetch(`${BASE}/api/sessions/${session_id}/next-learning`, {
+    method: 'POST',
+  })
+  if (!res.ok) throw new Error('다음 개념 이동 실패')
+  return res.json()
+}
+
 export async function submitVerbalAnswer(session_id, transcript) {
   const res = await fetch(`${BASE}/api/sessions/${session_id}/verbal-answer`, {
     method: 'POST',
