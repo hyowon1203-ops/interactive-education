@@ -130,6 +130,126 @@ select:focus, input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37
 .intro-result-concept { font-size: 20px; font-weight: 800; color: #166534; }
 .intro-result-id { font-size: 12px; font-family: ui-monospace, monospace; color: #64748b; }
 
+/* ── IntroMode 리디자인 ──────────────────────────────────── */
+
+.intro-shell {
+  width: 100vw; min-height: 100vh;
+  background: radial-gradient(ellipse at 60% 0%, #dbeafe 0%, #f8fafc 45%, #eef2ff 100%);
+  display: flex; flex-direction: column;
+}
+
+.intro-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 32px; flex-shrink: 0;
+}
+.intro-nav-brand {
+  font-size: 18px; font-weight: 900; letter-spacing: -0.05em; color: #1e40af;
+}
+.intro-nav-graph-btn {
+  background: none; border: 1px solid #cbd5e1; border-radius: 8px;
+  padding: 7px 16px; font-size: 13px; color: #475569; cursor: pointer; transition: all 0.12s;
+}
+.intro-nav-graph-btn:hover { background: #f1f5f9; border-color: #94a3b8; color: #1e293b; }
+
+.intro-hero {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: 32px 24px 0;
+}
+.intro-hero-inner { text-align: center; max-width: 600px; }
+
+.intro-badge {
+  display: inline-block; background: #dbeafe; color: #1d4ed8;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 5px 14px; border-radius: 999px; margin-bottom: 18px;
+}
+.intro-title {
+  font-size: clamp(52px, 8vw, 80px); font-weight: 900; letter-spacing: -0.05em;
+  color: #0f172a; margin: 0 0 14px; line-height: 1;
+  background: linear-gradient(135deg, #1e40af 0%, #4f46e5 60%, #7c3aed 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.intro-subtitle {
+  font-size: 17px; color: #475569; line-height: 1.7; margin: 0 0 28px;
+}
+
+.intro-feature-row {
+  display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 8px;
+}
+.intro-feature-chip {
+  background: white; border: 1px solid #e2e8f0;
+  border-radius: 999px; padding: 6px 14px; font-size: 13px; color: #334155;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.intro-card-area {
+  display: flex; justify-content: center; padding: 32px 24px 48px;
+}
+.intro-main-card {
+  background: white; border-radius: 20px; padding: 36px 40px;
+  width: 100%; max-width: 560px;
+  box-shadow: 0 20px 60px rgba(15,23,42,0.10), 0 4px 16px rgba(15,23,42,0.06);
+  border: 1px solid rgba(226,232,240,0.8);
+}
+.intro-card-heading {
+  font-size: 20px; font-weight: 800; letter-spacing: -0.03em; color: #0f172a; margin: 0 0 8px;
+}
+.intro-card-desc {
+  font-size: 14px; color: #64748b; line-height: 1.65; margin: 0 0 20px;
+}
+.intro-textarea {
+  width: 100%; padding: 14px; border: 1.5px solid #e2e8f0; border-radius: 12px;
+  font-size: 14px; line-height: 1.65; resize: vertical; font-family: inherit;
+  color: #1e293b; background: #f8fafc; transition: border-color 0.15s;
+}
+.intro-textarea:focus { outline: none; border-color: #2563eb; background: white; }
+.intro-submit-btn {
+  display: block; width: 100%; margin-top: 14px; padding: 13px;
+  background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+  color: white; border: none; border-radius: 12px;
+  font-size: 15px; font-weight: 700; cursor: pointer; transition: opacity 0.12s;
+  letter-spacing: -0.01em;
+}
+.intro-submit-btn:hover { opacity: 0.9; }
+.intro-submit-btn:disabled { background: #e2e8f0; color: #94a3b8; cursor: not-allowed; opacity: 1; }
+.intro-retry-btn {
+  display: block; width: 100%; margin-top: 10px; padding: 10px;
+  background: none; border: 1px solid #e2e8f0; border-radius: 12px;
+  font-size: 14px; color: #64748b; cursor: pointer; transition: all 0.12s;
+}
+.intro-retry-btn:hover { border-color: #cbd5e1; color: #1e293b; background: #f8fafc; }
+.intro-error {
+  background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px;
+  padding: 10px 14px; color: #dc2626; font-size: 13px; margin-bottom: 14px;
+}
+
+.intro-loading {
+  display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 32px 0;
+}
+.intro-spinner {
+  width: 36px; height: 36px;
+  border: 3px solid #dbeafe; border-top-color: #2563eb;
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+}
+.intro-loading-text { font-size: 16px; font-weight: 600; color: #1e293b; margin: 0; }
+.intro-loading-sub { font-size: 13px; color: #94a3b8; margin: 0; }
+
+.intro-result-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: #94a3b8; margin: 0 0 10px;
+}
+.intro-result-concept-box {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 16px 18px; background: #f0fdf4; border: 1.5px solid #86efac;
+  border-radius: 12px; margin-bottom: 16px;
+}
+.intro-result-name { font-size: 22px; font-weight: 800; color: #166534; }
+.intro-result-id { font-size: 12px; font-family: ui-monospace, monospace; color: #64748b; }
+.intro-result-reason {
+  font-size: 14px; color: #475569; line-height: 1.7;
+  padding: 12px 14px; background: #f8fafc; border-radius: 10px;
+  border-left: 3px solid #e2e8f0; margin-bottom: 20px;
+}
+
 .learn-start-btn {
   display: block; width: 100%; margin-top: 14px; padding: 11px 16px;
   background: #2563eb; color: #ffffff; border: none; border-radius: 10px;
