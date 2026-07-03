@@ -329,11 +329,15 @@ export default function LearningMode({ concept, onComplete, onCancel, onViewGrap
                 ))}
                 <ContentBlock label="모범 답변" variant="blue">{verbalResult.feedback.model_answer}</ContentBlock>
                 {verbalResult.feedback.recommended_review?.length > 0 && (
-                  <ContentBlock label="복습 추천">
+                  <div className="review-block">
+                    <p className="review-block-header">이 개념들을 복습하면 이해에 도움이 됩니다</p>
                     {verbalResult.feedback.recommended_review.map((r, i) => (
-                      <p key={i} style={{ margin: '2px 0' }}>• <strong>{r.concept}</strong>: {r.reason}</p>
+                      <div key={i} className="review-item">
+                        {r.concept?.trim() && <p className="review-item-concept">• {r.concept.trim()}</p>}
+                        {r.reason?.trim() && <p className="review-item-reason">{r.reason.trim()}</p>}
+                      </div>
                     ))}
-                  </ContentBlock>
+                  </div>
                 )}
               </div>
               {hasNextConcept ? (
