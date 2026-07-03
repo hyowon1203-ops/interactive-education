@@ -356,7 +356,7 @@ function readJsonFile(file) {
 // targetConceptId: string | undefined — concept currently being learned (focus on this in graph)
 // learningActive: bool — whether a learning session is in progress
 // onReturnToLearning: () => void
-export default function GraphMode({ externalMastery = {}, onStartLearning, onStartIntro, targetConceptId, learningActive, onReturnToLearning }) {
+export default function GraphMode({ externalMastery = {}, onStartLearning, onStartIntro, targetConceptId, learningActive, onReturnToLearning, onResetMastery }) {
   const [concepts, setConcepts] = useState([]);
   const [baseStudentState, setBaseStudentState] = useState({});
   const [viewMode, setViewMode] = useState('focus');
@@ -609,6 +609,13 @@ export default function GraphMode({ externalMastery = {}, onStartLearning, onSta
               <span>{level} · {info.label}</span>
             </div>
           ))}
+          {onResetMastery && (
+            <button className="reset-mastery-btn" onClick={() => {
+              if (window.confirm('모든 노드를 미진단 상태로 초기화할까요?')) onResetMastery()
+            }}>
+              이해도 초기화
+            </button>
+          )}
         </section>
 
         <section className="panel-section">

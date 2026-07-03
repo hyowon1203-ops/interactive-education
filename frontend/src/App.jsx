@@ -54,6 +54,11 @@ export default function App() {
     setView('graph')
   }
 
+  function handleResetMastery() {
+    localStorage.removeItem(STORAGE_KEY)
+    setMastery({})
+  }
+
   if (view === 'intro') {
     return (
       <IntroMode
@@ -74,6 +79,7 @@ export default function App() {
             targetConceptId={activeConcept?.id}
             learningActive={learningActive}
             onReturnToLearning={() => setView('learning')}
+            onResetMastery={handleResetMastery}
           />
         </ReactFlowProvider>
       </div>
