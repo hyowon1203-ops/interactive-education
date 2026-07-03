@@ -130,6 +130,7 @@ async def _begin_learning_phase(
     learning_queue: list[str],
     concept_data: dict,
     mastery_updates: dict,
+    gap_context: "str | None" = None,
 ) -> SubmitAnswerResponse:
     """진단 완료 후 학습 단계를 시작하는 헬퍼."""
     if not learning_queue:
@@ -183,6 +184,7 @@ async def _begin_learning_phase(
         gap_type=gap_type,
         learning_content=_make_learning_content(p4_output),
         recheck_question=first_concept.get("recheck_question"),
+        gap_context=gap_context,
         mastery_updates=mastery_updates,
     )
 
@@ -331,7 +333,7 @@ async def submit_answer(session_id: str, req: SubmitAnswerRequest):
             learning_queue, concept_data, mastery_updates,
         )
 
-    # ── 실패: 깊은 공백, P3로 선행 개념 탐색 ────────────────────────────────────
+    # ── 실패: P3로 선행 개념 공백 탐색 → 즉시 집중학습으로 이동 ──────────────────
     else:
         prereqs_sorted = graph_module.get_prerequisites_sorted(current_id)
         sys3, usr3 = build_prompt3_with_answer(concept, prereqs_sorted, req.why_answer)
@@ -341,60 +343,30 @@ async def submit_answer(session_id: str, req: SubmitAnswerRequest):
         gap_concept_id = _resolve_gap_concept_id(p3_output, current_id, prereqs_sorted)
         concept_data[current_id]["gap_type"] = "conceptual"
         concept_data[current_id]["gap_concept_id"] = gap_concept_id
-        mastery_updates[current_id] = 1  # 공백 (학습 후 갱신)
-
-        # 현재 개념을 학습 큐에 추가 (뒤에 쌓임 → 나중에 학습)
-        learning_queue = [current_id] + list(sess["learning_queue"])
-        current_depth = sess["depth"]
+        mastery_updates[current_id] = 1  # 공백(red)
 
         gap_concept = graph_module.get_concept(gap_concept_id)
 
-        # 더 내려갈 수 없는 조건: 최대 깊이 도달 or 선행 개념이 자기 자신 or gap 개념이 없음
-        can_go_deeper = (
-            gap_concept is not None
-            and gap_concept_id != current_id
-            and current_depth < sess["max_depth"] - 1
-        )
-
-        if not can_go_deeper:
-            # 더 내려갈 수 없음 → gap 개념도 학습 큐에 추가하고 학습 시작
-            if gap_concept and gap_concept_id != current_id:
-                learning_queue = [gap_concept_id] + learning_queue
-                mastery_updates[gap_concept_id] = 1
-            session_module.update_session(session_id, {"concept_data": concept_data})
-            return await _begin_learning_phase(
-                session_id, sess, judgment, p2_output["feedback"],
-                learning_queue, concept_data, mastery_updates,
+        if gap_concept and gap_concept_id != current_id:
+            # 선행 개념 B에 공백 → [B, A] 순서로 학습 (B 먼저, A 나중)
+            mastery_updates[gap_concept_id] = 1
+            concept_data.setdefault(gap_concept_id, {})["gap_type"] = "conceptual"
+            learning_queue = [gap_concept_id, current_id] + list(sess["learning_queue"])
+            gap_context = (
+                f"'{concept['name_kr']}' 개념을 진단하는 중 "
+                f"선행 개념 '{gap_concept['name_kr']}'에서 공백이 발견되었습니다. "
+                f"'{gap_concept['name_kr']}'부터 집중 학습합니다."
             )
+        else:
+            # 선행 개념 없음 or 자기 자신 → 현재 개념 직접 학습
+            learning_queue = [current_id] + list(sess["learning_queue"])
+            gap_context = None
 
-        # 더 내려갈 수 있음 → 선행 개념 P1 생성 후 진단 계속
-        sys1, usr1 = build_prompt1(gap_concept)
-        gap_p1_output = await call_llm(sys1, usr1)
-
-        concept_data[gap_concept_id] = {"p1_output": gap_p1_output}
-
-        session_module.update_session(session_id, {
-            "phase": "DIAGNOSING",
-            "current_concept_id": gap_concept_id,
-            "diagnosis_chain": sess["diagnosis_chain"] + [gap_concept_id],
-            "learning_queue": learning_queue,
-            "concept_data": concept_data,
-            "mastery_updates": mastery_updates,
-            "depth": current_depth + 1,
-        })
-
-        return SubmitAnswerResponse(
-            judgment=judgment,
-            feedback=p2_output["feedback"],
-            action="diagnose_next",
-            next_concept_id=gap_concept_id,
-            next_concept_name=gap_concept["name_kr"],
-            next_question=QuestionSet(
-                classification_question=gap_p1_output["classification_question"],
-                why_question=gap_p1_output["why_question"],
-                counter_example_question=gap_p1_output["counter_example_question"],
-            ),
-            mastery_updates=mastery_updates,
+        session_module.update_session(session_id, {"concept_data": concept_data})
+        return await _begin_learning_phase(
+            session_id, sess, judgment, p2_output["feedback"],
+            learning_queue, concept_data, mastery_updates,
+            gap_context=gap_context,
         )
 
 

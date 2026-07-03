@@ -250,33 +250,6 @@ select:focus, input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37
 
 .learning-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 16px; color: #64748b; }
 
-/* ── Diagnosis chain breadcrumb ──────────────────────────── */
-
-.chain-bar {
-  flex-shrink: 0; background: #1e293b; border-bottom: 1px solid #334155;
-  padding: 8px 20px; overflow-x: auto;
-}
-
-.diagnosis-chain {
-  display: flex; align-items: center; gap: 6px; flex-wrap: nowrap;
-  white-space: nowrap; min-width: 0;
-}
-
-.chain-item { display: flex; align-items: center; gap: 6px; }
-
-.chain-badge {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
-}
-
-.chain-pass  { background: #166534; color: #dcfce7; }
-.chain-partial { background: #713f12; color: #fef9c3; }
-.chain-fail  { background: #7f1d1d; color: #fee2e2; }
-
-.chain-judgment { font-size: 10px; font-weight: 400; opacity: 0.8; }
-
-.chain-arrow { color: #475569; font-size: 14px; }
-
 /* ── Concept chip / label in learning card ───────────────── */
 
 .concept-label {

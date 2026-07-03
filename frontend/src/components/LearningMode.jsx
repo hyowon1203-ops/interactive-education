@@ -37,39 +37,19 @@ function ContentBlock({ label, variant, children }) {
   )
 }
 
-function DiagnosisChain({ chain }) {
-  if (!chain || chain.length === 0) return null
-  return (
-    <div className="diagnosis-chain">
-      {chain.map((item, i) => (
-        <span key={i} className="chain-item">
-          <span className={`chain-badge chain-${judgeClass(item.judgment)}`}>
-            {item.name}
-            {item.judgment && <span className="chain-judgment">  {item.judgment}</span>}
-          </span>
-          {i < chain.length - 1 && <span className="chain-arrow">→</span>}
-        </span>
-      ))}
-    </div>
-  )
-}
-
 export default function LearningMode({ concept, onComplete, onCancel, onViewGraph, onMasteryUpdate }) {
   const [phase, setPhase] = useState('LOADING')
   const [sessionId, setSessionId] = useState(null)
 
-  // 진단 상태
-  const [diagnosisChain, setDiagnosisChain] = useState([])
-  const [currentConceptName, setCurrentConceptName] = useState('')
+  // 1차 진단 상태
   const [questions, setQuestions] = useState(null)
   const [classAns, setClassAns] = useState(null)
   const [whyAns, setWhyAns] = useState('')
+  const [diagnosisJudgment, setDiagnosisJudgment] = useState('')
+  const [diagnosisFeedback, setDiagnosisFeedback] = useState('')
 
-  // 갭 발견 상태 (GAP_FOUND)
-  const [gapFeedback, setGapFeedback] = useState('')
-  const [gapJudgment, setGapJudgment] = useState('')
-  const [nextQuestion, setNextQuestion] = useState(null)
-  const [nextConceptName, setNextConceptName] = useState('')
+  // GAP 발견 시 (선행 개념 공백)
+  const [gapContext, setGapContext] = useState(null)
 
   // 학습 상태
   const [learningConceptName, setLearningConceptName] = useState('')
@@ -94,11 +74,10 @@ export default function LearningMode({ concept, onComplete, onCancel, onViewGrap
     if (!concept) return
     setPhase('LOADING')
     setSessionId(null)
-    setDiagnosisChain([])
-    setCurrentConceptName(concept.name_kr || '')
     setQuestions(null)
     setClassAns(null); setWhyAns('')
-    setGapFeedback(''); setGapJudgment(''); setNextQuestion(null); setNextConceptName('')
+    setDiagnosisJudgment(''); setDiagnosisFeedback('')
+    setGapContext(null)
     setLearningConceptName(''); setLearningContent(null); setRecheckQuestion('')
     setVerbalAns(''); setVerbalResult(null); setHasNextConcept(false); setNextLearning(null)
     setError(null)
@@ -106,7 +85,6 @@ export default function LearningMode({ concept, onComplete, onCancel, onViewGrap
     startSession(concept.id)
       .then(data => {
         setSessionId(data.session_id)
-        setCurrentConceptName(data.concept_name)
         setQuestions(data.question)
         setPhase('ANSWERING')
       })
@@ -120,35 +98,28 @@ export default function LearningMode({ concept, onComplete, onCancel, onViewGrap
       const result = await submitAnswer(sessionId, classAns, whyAns)
       applyMasteryUpdates(result.mastery_updates)
 
-      if (result.action === 'diagnose_next') {
-        // 선행 개념으로 내려가서 계속 진단
-        setDiagnosisChain(prev => [...prev, { name: currentConceptName, judgment: result.judgment }])
-        setGapJudgment(result.judgment)
-        setGapFeedback(result.feedback)
-        setNextConceptName(result.next_concept_name)
-        setNextQuestion(result.next_question)
-        setPhase('GAP_FOUND')
-      } else if (result.action === 'start_learning') {
-        // 학습 큐 첫 번째 개념 학습 시작
-        setDiagnosisChain(prev => [...prev, { name: currentConceptName, judgment: result.judgment }])
-        setLearningConceptName(result.learning_concept_name)
-        setLearningContent(result.learning_content)
-        setRecheckQuestion(result.recheck_question)
-        setPhase('LEARNING_CONTENT')
-      } else {
-        // done — 개념이 이미 충분히 이해됨 (학습 큐 비어있음)
-        setDiagnosisChain(prev => [...prev, { name: currentConceptName, judgment: result.judgment }])
+      setDiagnosisJudgment(result.judgment)
+      setDiagnosisFeedback(result.feedback)
+
+      if (result.action === 'done') {
         setPhase('DONE')
+        return
+      }
+
+      // action === 'start_learning'
+      setLearningConceptName(result.learning_concept_name)
+      setLearningContent(result.learning_content)
+      setRecheckQuestion(result.recheck_question)
+
+      if (result.gap_context) {
+        // 선행 개념 공백 발견 → 발견 화면 먼저 보여주고 클릭 시 학습 시작
+        setGapContext(result.gap_context)
+        setPhase('GAP_FOUND')
+      } else {
+        // 부분(shallow) → 현재 개념 직접 학습
+        setPhase('LEARNING_CONTENT')
       }
     } catch (e) { setError(e.message); setPhase('ERROR') }
-  }
-
-  function handleContinueDiagnosis() {
-    setCurrentConceptName(nextConceptName)
-    setQuestions(nextQuestion)
-    setClassAns(null)
-    setWhyAns('')
-    setPhase('ANSWERING')
   }
 
   async function handleSubmitVerbal() {
@@ -173,6 +144,10 @@ export default function LearningMode({ concept, onComplete, onCancel, onViewGrap
     } catch (e) { setError(e.message); setPhase('ERROR') }
   }
 
+  function handleStartGapLearning() {
+    setPhase('LEARNING_CONTENT')
+  }
+
   function handleNextConcept() {
     if (!nextLearning) return
     setLearningConceptName(nextLearning.conceptName)
@@ -187,10 +162,10 @@ export default function LearningMode({ concept, onComplete, onCancel, onViewGrap
 
   const phaseLabel = {
     LOADING: '문제 생성 중',
-    ANSWERING: '진단 중',
+    ANSWERING: '1차 점검',
     EVALUATING: '평가 중',
     GAP_FOUND: '공백 발견',
-    LEARNING_CONTENT: '개념 학습',
+    LEARNING_CONTENT: '집중 학습',
     VERBAL_INPUT: '2차 점검',
     EVALUATING_VERBAL: '최종 평가 중',
     VERBAL_RESULT: '점검 결과',
@@ -222,12 +197,6 @@ export default function LearningMode({ concept, onComplete, onCancel, onViewGrap
         </div>
       </div>
 
-      {diagnosisChain.length > 0 && (
-        <div className="chain-bar">
-          <DiagnosisChain chain={diagnosisChain} />
-        </div>
-      )}
-
       <div className="learning-body">
         <div className="learning-card">
 
@@ -236,8 +205,8 @@ export default function LearningMode({ concept, onComplete, onCancel, onViewGrap
           {phase === 'ANSWERING' && questions && (
             <div>
               <div className="concept-label">
-                <span className="concept-chip">진단 개념</span>
-                <strong>{currentConceptName}</strong>
+                <span className="concept-chip">1차 점검</span>
+                <strong>{concept.name_kr}</strong>
               </div>
               <div className="question-block">
                 <span className="q-label">문제</span>
@@ -269,18 +238,24 @@ export default function LearningMode({ concept, onComplete, onCancel, onViewGrap
           {phase === 'GAP_FOUND' && (
             <div>
               <div className="concept-label">
-                <span className="concept-chip">진단 결과</span>
-                <strong>{currentConceptName}</strong>
-                <span className={`badge badge-${judgeClass(gapJudgment)}`}>{gapJudgment}</span>
+                <span className="concept-chip">1차 점검 결과</span>
+                <strong>{concept.name_kr}</strong>
+                <span className={`badge badge-${judgeClass(diagnosisJudgment)}`}>{diagnosisJudgment}</span>
               </div>
-              <p className="feedback-text">{gapFeedback}</p>
+              <p className="feedback-text">{diagnosisFeedback}</p>
+
               <div className="gap-found-box">
-                <p className="gap-found-label">선행 개념에서 공백이 발견되었습니다</p>
-                <p className="gap-found-concept">→ <strong>{nextConceptName}</strong></p>
-                <p className="gap-found-desc">이 개념부터 먼저 진단하겠습니다.</p>
+                <p className="gap-found-label">선행 개념 공백 발견</p>
+                <p className="gap-found-desc">{gapContext}</p>
               </div>
-              <button className="btn-primary" onClick={handleContinueDiagnosis}>
-                계속 진단하기
+
+              <div className="concept-label" style={{ marginTop: 20, marginBottom: 0 }}>
+                <span className="concept-chip">집중 학습 대상</span>
+                <strong>{learningConceptName}</strong>
+              </div>
+
+              <button className="btn-primary" onClick={handleStartGapLearning}>
+                {learningConceptName} 집중학습 시작
               </button>
             </div>
           )}
@@ -363,7 +338,7 @@ export default function LearningMode({ concept, onComplete, onCancel, onViewGrap
               </div>
               {hasNextConcept ? (
                 <button className="btn-primary" onClick={handleNextConcept}>
-                  다음 개념 학습 → {nextLearning?.conceptName}
+                  다음: {nextLearning?.conceptName} 집중학습
                 </button>
               ) : (
                 <button className="btn-primary" onClick={() => { if (onComplete) onComplete() }}>
@@ -375,9 +350,12 @@ export default function LearningMode({ concept, onComplete, onCancel, onViewGrap
 
           {phase === 'DONE' && (
             <div className="loading-state">
-              <p style={{ fontSize: '2rem' }}>✓</p>
-              <p>모든 학습이 완료되었습니다.</p>
-              <button className="btn-primary" style={{ marginTop: 16 }} onClick={() => { if (onComplete) onComplete() }}>
+              <p style={{ fontSize: '2rem', margin: 0 }}>✓</p>
+              <div className="concept-label" style={{ justifyContent: 'center' }}>
+                <span className={`badge badge-${judgeClass(diagnosisJudgment)}`}>{diagnosisJudgment}</span>
+              </div>
+              <p style={{ color: '#475569', textAlign: 'center', margin: 0 }}>{diagnosisFeedback}</p>
+              <button className="btn-primary" style={{ marginTop: 8 }} onClick={() => { if (onComplete) onComplete() }}>
                 그래프로 돌아가기
               </button>
             </div>

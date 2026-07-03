@@ -38,13 +38,8 @@ class SubmitAnswerResponse(BaseModel):
     # 항상 존재
     judgment: str
     feedback: str
-    action: str          # "diagnose_next" | "start_learning" | "done"
+    action: str          # "start_learning" | "done"
     mastery_updates: dict = {}
-
-    # action == "diagnose_next" 일 때
-    next_concept_id: Optional[str] = None
-    next_concept_name: Optional[str] = None
-    next_question: Optional[QuestionSet] = None
 
     # action == "start_learning" 일 때
     learning_concept_id: Optional[str] = None
@@ -52,6 +47,8 @@ class SubmitAnswerResponse(BaseModel):
     gap_type: Optional[str] = None
     learning_content: Optional[LearningContent] = None
     recheck_question: Optional[str] = None
+    # 선행 개념 공백 발견 시 설명 문구 (없으면 바로 학습 시작)
+    gap_context: Optional[str] = None
 
     # legacy
     is_done: bool = False
